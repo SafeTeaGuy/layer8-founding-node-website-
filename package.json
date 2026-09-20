@@ -1,0 +1,25 @@
+{
+  "name": "layer8-founding-node-website",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Layer8 Founding Node sales/configuration site. Phase 1 of 3 (Site and Node Builder). No payments, orders, or accounts in this phase.",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "test": "vitest run",
+    "check:no-hardcoded-prices": "node scripts/check-no-hardcoded-prices.mjs"
+  },
+  "dependencies": {
+    "next": "^16.3.5",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "@types/react": "^19.1.0",
+    "@types/react-dom": "^19.1.0",
+    "typescript": "^5.5.3",
+    "vitest": "^5.0.1"
+  }
+}

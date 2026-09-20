@@ -1,0 +1,12 @@
+{
+  "_comment": "Structured extract of docs/FOUNDING_NODE_READINESS.md and docs/productization_audit.md, both snapshotted in data/. Every field is either a real, cited artifact value or null. null renders as 'Not yet published' per phase-1-site-and-builder.md §3 -- never fill in a number here without an artifact backing it.",
+  "report_date": "2026-09-20",
+  "test_suite_result": { "value": "188 passed", "source": "docs/productization_audit.md baseline test run" },
+  "capture_duration_tested": null,
+  "feeds_tested_live": null,
+  "disconnect_reconnect_result": null,
+  "gap_detection_result": null,
+  "clock_health_result": null,
+  "restart_persistence_result": null,
+  "not_yet_demonstrated_note": "docs/FOUNDING_NODE_READINESS.md: every capture feed's capture_status is NOT_CONFIGURED -- no live capture session has ever run, so none of the above fields have a real-world artifact yet. The 188 passing tests cover library-level unit tests only, several with mocks (per that phase's own rule: 'Unit tests may use mocks; the acceptance steps below may not')."
+}

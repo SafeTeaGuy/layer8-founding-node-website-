@@ -1,0 +1,71 @@
+{
+  "audit_version": "1.0.0",
+  "audited_at": "2026-09-20",
+  "source": "docs/build-phases/productization/phase-1-audit.md",
+  "scope_note": "Lists every feed with any code in this repository. None of these have a live network transport wired up: layer8_node/adapters/*.py are pure normalization functions (raw exchange message dict -> canonical trade dict). Nothing in this repository opens a websocket, polls a REST endpoint, or otherwise connects to a live venue. See tests/node/test_adapters.py for what is actually exercised (synthetic fixture messages only) and docs/architecture_gap_register.json's 'venue-websocket-transport' entry for the gap this reflects.",
+  "feeds": [
+    {
+      "provider": "Coinbase",
+      "venue": "Coinbase Exchange",
+      "market": "BTC-USD spot",
+      "data_type": "trades",
+      "transport": "NONE",
+      "transport_note": "layer8_node/adapters/coinbase.py normalizes a Coinbase Exchange WS 'match' message shape; no websocket client exists to actually receive one.",
+      "timestamp_precision": "milliseconds (ISO-8601 with fractional seconds, per source message)",
+      "authentication_requirement": "UNKNOWN_NOT_VERIFIED (public trade feed is normally unauthenticated, but no live connection has ever been made from this repo to verify)",
+      "geographic_or_jurisdiction_limits": "UNKNOWN_NOT_VERIFIED",
+      "rate_limits": "UNKNOWN_NOT_VERIFIED",
+      "capture_status": "NOT_CONFIGURED",
+      "known_gaps": "No live transport exists at all. L2 order-book data is also not implemented (Channel.L2_UPDATE / L2_SNAPSHOT exist as enum values only).",
+      "data_redistribution_or_tos_notes": "UNKNOWN_NOT_VERIFIED",
+      "code_refs": [
+        "layer8_node/adapters/coinbase.py",
+        "tests/node/test_adapters.py::test_coinbase_trade_normalizes"
+      ]
+    },
+    {
+      "provider": "Kraken",
+      "venue": "Kraken",
+      "market": "XBT/USD spot",
+      "data_type": "trades",
+      "transport": "NONE",
+      "transport_note": "layer8_node/adapters/kraken.py normalizes one Kraken trade-channel entry (already unpacked from Kraken's array wire format into a dict, by whatever transport layer would exist); no such transport layer exists.",
+      "timestamp_precision": "microseconds as a decimal unix-seconds string, per source message; adapter converts to integer milliseconds",
+      "authentication_requirement": "UNKNOWN_NOT_VERIFIED",
+      "geographic_or_jurisdiction_limits": "UNKNOWN_NOT_VERIFIED",
+      "rate_limits": "UNKNOWN_NOT_VERIFIED",
+      "capture_status": "NOT_CONFIGURED",
+      "known_gaps": "No live transport exists. Kraken's public trade channel carries no per-trade sequence number (documented explicitly in the adapter's docstring), so sequence-gap detection has nothing to compare against on this feed even once a transport exists. No L2 implementation.",
+      "data_redistribution_or_tos_notes": "UNKNOWN_NOT_VERIFIED",
+      "code_refs": [
+        "layer8_node/adapters/kraken.py",
+        "tests/node/test_adapters.py::test_kraken_trade_normalizes"
+      ]
+    },
+    {
+      "provider": "Binance",
+      "venue": "Binance",
+      "market": "BTCUSDT spot",
+      "data_type": "trades",
+      "transport": "NONE",
+      "transport_note": "layer8_node/adapters/binance.py normalizes a Binance <symbol>@trade stream message; no websocket client exists.",
+      "timestamp_precision": "milliseconds (integer, per source message)",
+      "authentication_requirement": "UNKNOWN_NOT_VERIFIED",
+      "geographic_or_jurisdiction_limits": "UNKNOWN_NOT_VERIFIED -- Binance.com is widely known to block some jurisdictions (e.g. US users are directed to Binance.US), but this has not been verified or tested by this repository and must not be assumed to work universally, per this phase's own instruction.",
+      "rate_limits": "UNKNOWN_NOT_VERIFIED",
+      "capture_status": "NOT_CONFIGURED",
+      "known_gaps": "No live transport exists. No L2 implementation.",
+      "data_redistribution_or_tos_notes": "UNKNOWN_NOT_VERIFIED",
+      "code_refs": [
+        "layer8_node/adapters/binance.py",
+        "tests/node/test_adapters.py::test_binance_trade_normalizes"
+      ]
+    }
+  ],
+  "not_implemented_at_all": [
+    "L2 order-book depth/snapshots for any venue",
+    "perps/futures/OI/funding/liquidations (§53.3 R1 in the architecture spec)",
+    "CME, options, ETF flows (§53.3 R2)",
+    "stablecoin/on-chain/macro feeds (§53.3 R3)"
+  ]
+}

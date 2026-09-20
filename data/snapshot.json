@@ -1,0 +1,12 @@
+{
+  "snapshot_version": "snapshot-v1",
+  "source_repo": "https://github.com/SafeTeaGuy/Layer8",
+  "source_commit": "cad3d7e9bb733c36d5db0e5b848f55a357536776",
+  "source_branch": "dev/layer8-core",
+  "snapshot_taken_at": "2026-09-20T03:57:36Z",
+  "files": {
+    "catalog.json": "df5b32a0e4cc417def4e0839b7f455b0430b612a766ff71120b5937b6887e98a",
+    "feed_capabilities.json": "bb9dfcf5a374c87950dcc0eca66a6fb8b9f03279124afc670f61e16d9133933f",
+    "FOUNDING_NODE_READINESS.md": "d28f6bbaac5a8275387732af25eb322dd2603cae07aa84ade68e40299f684431"
+  }
+}
