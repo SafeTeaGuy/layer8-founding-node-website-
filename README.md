@@ -6,9 +6,14 @@ intentionally separate from [SafeTeaGuy/Layer8](https://github.com/SafeTeaGuy/La
 phase specs this was built against, and `docs/business/` for the commercial drafts
 (pricing, update policy) this site reads facts from.
 
-**Current phase: Phase 1 of 3 — Site and Node Builder.** No payments, orders, or
-accounts exist yet. STOP was honored at the end of Phase 1 per the phase doc's own
-rule; Phase 2 (Orders and Checkout) has not been started.
+**Phase 1 of 3 (Site and Node Builder) is done.** **Phase 2 (Orders and Checkout)
+is in progress**: payment abstraction, order model, Founding Node reservation,
+Stripe checkout session creation, webhook handling, Node ID issuance, and
+entitlements are built and unit-tested (see `lib/orders.ts`, `lib/payments/`,
+`app/api/checkout/`, `app/api/webhooks/stripe/`). **Not yet verified against a
+live Stripe test-mode round trip or a real deployment** — see "Known risk"
+below and the Layer8 repo's `docs/build-phases/BUILD_QUEUE.md` for current
+status.
 
 ## Founder decisions locked for this build
 
@@ -52,12 +57,70 @@ Because every module in the current snapshot is `NOT_IMPLEMENTED` and
 Node Builder correctly shows everything — including Layer8 TA — as `COMING LATER`.
 That's the accurate state, not a bug.
 
+## Phase 2: orders, checkout, webhooks, entitlements
+
+- `lib/orders.ts` — `Order` model, `resolveSelectionServerSide` (server-side
+  truth: never trusts a module list, price, or total from the browser),
+  Founding Node reservation (100-spot limit, 30-minute reservation window),
+  `buildEntitlements` (24-month update windows per module).
+- `lib/payments/` — `PaymentProvider` interface + `StripePaymentProvider`
+  (checkout session creation, webhook signature verification via
+  `stripe.webhooks.constructEvent`, payment status lookup). No Stripe-specific
+  code exists outside this one file.
+- `app/api/checkout/route.ts` — validates terms acknowledgement and email,
+  re-resolves the selection against the real catalog server-side, creates a
+  PENDING/RESERVED order, creates the Stripe checkout session.
+- `app/api/webhooks/stripe/route.ts` — verifies every signature, is
+  idempotent on the order ID (a duplicate `checkout.session.completed`
+  creates no second Node ID or entitlement), issues the Node ID only after
+  re-confirming payment status with Stripe, builds entitlements.
+- `lib/notifications.ts` — receipt email. With no `RESEND_API_KEY` configured
+  it logs and returns `NOT_SENT_NO_PROVIDER_CONFIGURED` rather than claiming
+  a send that didn't happen.
+
+### E2E test fixture (never active in production)
+
+The real `data/catalog.json` snapshot honestly shows all 24 modules as
+`NOT_IMPLEMENTED` — nothing is commercially available, so there is nothing a
+real checkout flow could purchase. To exercise the Stripe path end-to-end
+without editing that real data or lying to a visitor's browser,
+`lib/e2eFixtureCatalog.ts` provides one artificially-available test module,
+gated behind **two independent conditions**, both required:
+
+1. `process.env.VERCEL_ENV !== "production"` — a system variable Vercel
+   itself injects based on the actual deployment context, not something a
+   person can set via project configuration. This is the hard, code-level
+   block: even if `E2E_FIXTURE_CATALOG=true` were mistakenly set on the
+   production Vercel project, this check still keeps the fixture off there.
+2. `E2E_FIXTURE_CATALOG=true` must also be explicitly set.
+
+Only `app/api/checkout/route.ts` and the test-only
+`app/api/e2e/order-status/route.ts` (returns an order + its entitlements,
+gated the same way, for verifying webhook results without the Phase 3
+customer portal) ever import this module. `lib/catalog.ts`'s real `catalog`
+export — used by every page and component a visitor actually sees — is
+never touched by it.
+
+### Known risk, not yet resolved: in-memory store on serverless
+
+`InMemoryOrderStore` and `InMemoryEntitlementStore` (`lib/orders.ts`,
+`lib/entitlements.ts`) hold state in a `globalThis` singleton within one
+Node.js process. That's correct and fully sufficient for local dev and the
+unit tests. It is very likely **not** sufficient once deployed to Vercel:
+serverless function invocations are not guaranteed to share a warm
+container, so the order created by a `/api/checkout` request may not be
+visible to the `/api/webhooks/stripe` request that arrives moments later
+from Stripe's servers. This needs a real `DATABASE_URL`-backed
+implementation of `OrderStore`/`EntitlementStore` before Phase 2 is a real
+product rather than a demonstration of the logic. Flagging this now,
+before the live E2E test, rather than being surprised by it.
+
 ## Development
 
 ```bash
 npm install
 npm run dev          # http://localhost:3000
-npm test             # vitest — catalog logic, dependency cascade, price calc, proof-section rules
+npm test             # vitest — catalog logic, dependency cascade, price calc, proof-section rules, order/reservation/entitlement logic, E2E fixture safety guard
 npm run check:no-hardcoded-prices   # static check: no price literals outside data/catalog.json
 npm run build
 ```

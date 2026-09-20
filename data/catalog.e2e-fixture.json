@@ -1,0 +1,28 @@
+{
+  "_comment": "E2E-TEST-ONLY FIXTURE. Never the real product catalog. See lib/e2eFixtureCatalog.ts for the hard, code-level guard that makes this impossible to activate in a production deployment. This file exists solely so the Stripe checkout/webhook/entitlement path can be exercised end-to-end without lying about what data/catalog.json says is real. It must never be read by any code path that isn't explicitly gated for E2E testing, and never by anything a real visitor's browser renders.",
+  "catalog_version": "e2e-fixture-v1",
+  "generated_from": "hand-authored test fixture, not derived from any audit",
+  "note": "TEST FIXTURE ONLY -- one module marked artificially COMPLETE/commercially_available so an automated E2E test has something to actually purchase in Stripe test mode.",
+  "pricing": {
+    "layer8_ta": 500,
+    "specialist_module": 100,
+    "layer8_trade": 2000,
+    "complete_bundle": 4000,
+    "upgrade_pricing_rule": "bundle price minus what's already paid"
+  },
+  "modules": [
+    {
+      "id": "layer8-ta",
+      "name": "Layer8 TA (E2E TEST FIXTURE)",
+      "description": "E2E test fixture only -- not a real product claim.",
+      "version": "0.0.0-e2e-fixture",
+      "implementation_status": "COMPLETE",
+      "commercially_available": true,
+      "dependencies": [],
+      "required_feeds": [],
+      "price": 500,
+      "installable": true,
+      "enabled": true
+    }
+  ]
+}
