@@ -10,6 +10,8 @@ export interface CheckoutSessionParams {
   description: string;
   successUrl: string;
   cancelUrl: string;
+  /** Unix seconds. When set, the session can never be completed after this time -- see lib/orders.ts's checkoutExpiresAtSeconds. */
+  expiresAt?: number;
 }
 
 export interface CheckoutSessionResult {

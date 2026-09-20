@@ -36,6 +36,7 @@ export class StripePaymentProvider implements PaymentProvider {
       metadata: { order_id: params.orderId },
       success_url: params.successUrl,
       cancel_url: params.cancelUrl,
+      ...(params.expiresAt ? { expires_at: params.expiresAt } : {}),
     });
 
     if (!session.url) {

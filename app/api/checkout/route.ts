@@ -3,6 +3,7 @@ import { randomUUID } from "node:crypto";
 import {
   FoundingNodeSoldOutError,
   OrderValidationError,
+  checkoutExpiresAtSeconds,
   createPendingOrder,
   resolveSelectionServerSide,
 } from "@/lib/orders";
@@ -83,6 +84,10 @@ export async function POST(req: NextRequest) {
     description: `Layer8 Founding Node -- ${order.purchased_modules.length} module(s)`,
     successUrl: `${origin}/order/success?order_id=${order.order_id}`,
     cancelUrl: `${origin}/#builder`,
+    // Never let the Stripe session outlive our Founding Node reservation --
+    // otherwise someone (or a bot) could keep a checkout tab open past the
+    // point the spot was freed and reassigned. See checkoutExpiresAtSeconds.
+    expiresAt: checkoutExpiresAtSeconds(order),
   });
 
   await store.update(order.order_id, { payment_provider_reference: session.sessionId });

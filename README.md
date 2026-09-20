@@ -78,6 +78,28 @@ That's the accurate state, not a bug.
   it logs and returns `NOT_SENT_NO_PROVIDER_CONFIGURED` rather than claiming
   a send that didn't happen.
 
+### Founding Node reservations don't leak past their own expiry
+
+A Founding Node order is `RESERVED`, not `PAID`, the moment checkout begins,
+with a `reservation_expires_at` 30 minutes out (`FOUNDING_RESERVATION_MIN`).
+`countActiveFoundingSpots` already excludes lapsed reservations from the
+100-spot count regardless of whether any webhook ever fires, so an abandoned
+or bot-created session can't permanently consume a spot.
+
+The part that needed fixing: Stripe defaults an unconfigured Checkout
+Session to a **24-hour** expiry, far longer than a 30-minute reservation.
+Without aligning the two, someone could open checkout, let their reservation
+lapse (spot freed and possibly reassigned), and still complete payment on
+Stripe hours later — the webhook would then issue a Node ID for a spot that
+may no longer exist. `checkoutExpiresAtSeconds` (`lib/orders.ts`) computes a
+Stripe `expires_at` that matches the reservation window (clamped up to
+Stripe's own 30-minute minimum plus a small safety margin for processing
+latency, never down — Stripe can, in the worst case, outlive the reservation
+by that margin, never the reverse). The webhook route also logs loudly
+(not silently) if it ever sees a payment confirmed after its reservation had
+already lapsed, as a residual-risk detector rather than a claim that this is
+now provably impossible.
+
 ### E2E test fixture (never active in production)
 
 The real `data/catalog.json` snapshot honestly shows all 24 modules as

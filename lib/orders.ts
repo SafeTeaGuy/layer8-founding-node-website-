@@ -214,6 +214,39 @@ export async function createPendingOrder(
   return order;
 }
 
+/** Stripe's own minimum -- rejects an expires_at less than 30 minutes out. */
+const STRIPE_MIN_EXPIRY_SECONDS = 30 * 60;
+/** Small safety margin so processing latency between order creation and the actual Stripe API call never drops us under Stripe's minimum. */
+const EXPIRY_SAFETY_MARGIN_SECONDS = 60;
+
+/**
+ * The Unix-seconds timestamp a Founding Node order's Stripe Checkout
+ * Session must expire at, so Stripe's own session can never outlive our
+ * internal reservation window. Without this, Stripe defaults a session to
+ * a 24-hour expiry -- far longer than FOUNDING_RESERVATION_MIN -- which
+ * would let someone complete payment long after their reservation lapsed
+ * and the spot was potentially given to someone else.
+ *
+ * Returns undefined for a non-founding order (no scarcity to protect;
+ * Stripe's default expiry is fine).
+ */
+export function checkoutExpiresAtSeconds(order: Order, now: Date = new Date()): number | undefined {
+  if (!order.founding_node || !order.reservation_expires_at) return undefined;
+
+  const reservationSeconds = Math.floor(new Date(order.reservation_expires_at).getTime() / 1000);
+  const nowSeconds = Math.floor(now.getTime() / 1000);
+  const minAllowed = nowSeconds + STRIPE_MIN_EXPIRY_SECONDS + EXPIRY_SAFETY_MARGIN_SECONDS;
+
+  // Clamp up to Stripe's enforced minimum if our reservation window is
+  // already too close to "now" for Stripe to accept (e.g. clock skew, or
+  // FOUNDING_RESERVATION_MIN itself being exactly 30). This means Stripe's
+  // session can, in the worst case, outlive our reservation by up to
+  // EXPIRY_SAFETY_MARGIN_SECONDS -- an accepted, tiny residual window, not
+  // an unbounded one. It is closed further by the webhook's own defensive
+  // capacity check (see app/api/webhooks/stripe/route.ts).
+  return Math.max(reservationSeconds, minAllowed);
+}
+
 export function buildEntitlements(order: Order, nodeId: string, now: Date = new Date()): Entitlement[] {
   const entitlementEnd = new Date(now);
   entitlementEnd.setUTCMonth(entitlementEnd.getUTCMonth() + 24);

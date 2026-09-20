@@ -49,6 +49,23 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: true, ignored: `payment status is ${status}` });
     }
 
+    // Defensive check, not a guarantee: the checkout session's own expiry
+    // is aligned to this reservation window (see checkoutExpiresAtSeconds),
+    // so Stripe should refuse to complete payment once the reservation has
+    // lapsed. If this fires anyway (clock skew, or a bug in that
+    // alignment), a real payment has already been taken -- refusing to
+    // deliver the product at that point is worse than the overcommit, so
+    // this logs loudly for manual founder review rather than silently
+    // failing the order.
+    if (order.founding_node && order.reservation_expires_at && new Date(order.reservation_expires_at) < new Date()) {
+      console.error(
+        `[webhook] ORDER ${order.order_id}: payment confirmed AFTER its Founding Node reservation ` +
+          `(expired ${order.reservation_expires_at}) had already lapsed. This should be prevented by ` +
+          `Stripe session expiry alignment -- if it happened, the 100-spot count may be briefly ` +
+          `overcommitted. Flagging for manual review rather than refusing a paid customer their node.`
+      );
+    }
+
     const nodeId = generateNodeId();
     await orderStore.update(order.order_id, {
       status: "PAID",
